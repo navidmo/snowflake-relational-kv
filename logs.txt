@@ -1,0 +1,958 @@
+==== QA Pairs Management System Demo ====
+
+==== Cleaning up existing objects ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+DROP FUNCTION IF EXISTS get_all_qa_pairs();
++----------------------------------------+
+| status                                 |
+|----------------------------------------|
+| GET_ALL_QA_PAIRS successfully dropped. |
++----------------------------------------+
+DROP PROCEDURE IF EXISTS get_all_qa_pairs();
++--------------------------------------------------------------------------+
+| status                                                                   |
+|--------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_ALL_QA_PAIRS already dropped). |
++--------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS get_qa_pair_by_id(NUMBER);
++-----------------------------------------+
+| status                                  |
+|-----------------------------------------|
+| GET_QA_PAIR_BY_ID successfully dropped. |
++-----------------------------------------+
+DROP PROCEDURE IF EXISTS get_qa_pair_by_id(NUMBER);
++---------------------------------------------------------------------------+
+| status                                                                    |
+|---------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_QA_PAIR_BY_ID already dropped). |
++---------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS search_qa_pairs(TEXT);
++---------------------------------------+
+| status                                |
+|---------------------------------------|
+| SEARCH_QA_PAIRS successfully dropped. |
++---------------------------------------+
+DROP PROCEDURE IF EXISTS search_qa_pairs(TEXT);
++-------------------------------------------------------------------------+
+| status                                                                  |
+|-------------------------------------------------------------------------|
+| Drop statement executed successfully (SEARCH_QA_PAIRS already dropped). |
++-------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS get_qa_pairs_by_date_range(TIMESTAMP_NTZ, TIMESTAMP_NTZ);
++--------------------------------------------------+
+| status                                           |
+|--------------------------------------------------|
+| GET_QA_PAIRS_BY_DATE_RANGE successfully dropped. |
++--------------------------------------------------+
+DROP PROCEDURE IF EXISTS get_qa_pairs_by_date_range(TIMESTAMP_NTZ, TIMESTAMP_NTZ);
++------------------------------------------------------------------------------------+
+| status                                                                             |
+|------------------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_QA_PAIRS_BY_DATE_RANGE already dropped). |
++------------------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS get_recent_qa_pairs(NUMBER);
++-------------------------------------------+
+| status                                    |
+|-------------------------------------------|
+| GET_RECENT_QA_PAIRS successfully dropped. |
++-------------------------------------------+
+DROP PROCEDURE IF EXISTS get_recent_qa_pairs(NUMBER);
++-----------------------------------------------------------------------------+
+| status                                                                      |
+|-----------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_RECENT_QA_PAIRS already dropped). |
++-----------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS get_qa_pairs_count();
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| GET_QA_PAIRS_COUNT successfully dropped. |
++------------------------------------------+
+DROP PROCEDURE IF EXISTS get_qa_pairs_count();
++----------------------------------------------------------------------------+
+| status                                                                     |
+|----------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_QA_PAIRS_COUNT already dropped). |
++----------------------------------------------------------------------------+
+DROP FUNCTION IF EXISTS get_qa_pairs_stats();
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| GET_QA_PAIRS_STATS successfully dropped. |
++------------------------------------------+
+DROP PROCEDURE IF EXISTS get_qa_pairs_stats();
++----------------------------------------------------------------------------+
+| status                                                                     |
+|----------------------------------------------------------------------------|
+| Drop statement executed successfully (GET_QA_PAIRS_STATS already dropped). |
++----------------------------------------------------------------------------+
+DROP PROCEDURE IF EXISTS batch_insert_qa_pairs_proc(VARIANT);
++--------------------------------------------------+
+| status                                           |
+|--------------------------------------------------|
+| BATCH_INSERT_QA_PAIRS_PROC successfully dropped. |
++--------------------------------------------------+
+DROP PROCEDURE IF EXISTS add_qa_pair(TEXT, TEXT);
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| ADD_QA_PAIR successfully dropped. |
++-----------------------------------+
+DROP PROCEDURE IF EXISTS update_qa_pair(NUMBER, TEXT, TEXT);
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| UPDATE_QA_PAIR successfully dropped. |
++--------------------------------------+
+DROP PROCEDURE IF EXISTS delete_qa_pair(NUMBER);
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| DELETE_QA_PAIR successfully dropped. |
++--------------------------------------+
+DROP PROCEDURE IF EXISTS add_qa_pairs_batch(VARIANT);
++----------------------------------------------------------------------------+
+| status                                                                     |
+|----------------------------------------------------------------------------|
+| Drop statement executed successfully (ADD_QA_PAIRS_BATCH already dropped). |
++----------------------------------------------------------------------------+
+DROP SEQUENCE IF EXISTS daily_qa_pairs_seq;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| DAILY_QA_PAIRS_SEQ successfully dropped. |
++------------------------------------------+
+DROP TABLE IF EXISTS daily_qa_pairs;
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| DAILY_QA_PAIRS successfully dropped. |
++--------------------------------------+
+SELECT 'Cleanup completed successfully' AS status;
++--------------------------------+
+| STATUS                         |
+|--------------------------------|
+| Cleanup completed successfully |
++--------------------------------+
+\checkmark Cleanup completed successfully
+
+==== Step 1: Setting up the QA Pairs System ====
+
+
+==== Executing Creating database objects ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+CREATE OR REPLACE SEQUENCE daily_qa_pairs_seq START = 1 INCREMENT = 1;
++---------------------------------------------------+
+| status                                            |
+|---------------------------------------------------|
+| Sequence DAILY_QA_PAIRS_SEQ successfully created. |
++---------------------------------------------------+
+CREATE OR REPLACE TABLE daily_qa_pairs (
+    id NUMBER,                    
+    question TEXT,               
+    answer TEXT,                 
+    created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),  
+    updated_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()   
+);
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Table DAILY_QA_PAIRS successfully created. |
++--------------------------------------------+
+SELECT 'Database objects created successfully' as status;
++---------------------------------------+
+| STATUS                                |
+|---------------------------------------|
+| Database objects created successfully |
++---------------------------------------+
+\checkmark Creating database objects completed successfully
+
+==== Executing Creating functions and procedures ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+CREATE OR REPLACE PROCEDURE add_qa_pair(question TEXT, answer TEXT)
+RETURNS NUMBER
+LANGUAGE SQL
+AS
+$$
+DECLARE
+    new_id NUMBER;
+BEGIN
+    INSERT INTO daily_qa_pairs (id, question, answer)
+    VALUES (daily_qa_pairs_seq.NEXTVAL, :question, :answer);
+    SELECT daily_qa_pairs_seq.CURRVAL INTO :new_id;
+    RETURN :new_id;
+END;
+$$;
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Function ADD_QA_PAIR successfully created. |
++--------------------------------------------+
+CREATE OR REPLACE FUNCTION get_all_qa_pairs()
+RETURNS TABLE (
+    id NUMBER,
+    question TEXT,
+    answer TEXT,
+    created_at TIMESTAMP_NTZ,
+    updated_at TIMESTAMP_NTZ
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT id, question, answer, created_at, updated_at
+FROM daily_qa_pairs
+ORDER BY created_at DESC';
++-------------------------------------------------+
+| status                                          |
+|-------------------------------------------------|
+| Function GET_ALL_QA_PAIRS successfully created. |
++-------------------------------------------------+
+CREATE OR REPLACE FUNCTION get_qa_pair_by_id(qa_id NUMBER)
+RETURNS TABLE (
+    id NUMBER,
+    question TEXT,
+    answer TEXT,
+    created_at TIMESTAMP_NTZ,
+    updated_at TIMESTAMP_NTZ
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT id, question, answer, created_at, updated_at
+FROM daily_qa_pairs
+WHERE id = qa_id';
++--------------------------------------------------+
+| status                                           |
+|--------------------------------------------------|
+| Function GET_QA_PAIR_BY_ID successfully created. |
++--------------------------------------------------+
+CREATE OR REPLACE PROCEDURE update_qa_pair(
+    qa_id NUMBER,
+    new_question TEXT,
+    new_answer TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    UPDATE daily_qa_pairs
+    SET 
+        question = :new_question,
+        answer = :new_answer,
+        updated_at = CURRENT_TIMESTAMP()
+    WHERE id = :qa_id;
+    RETURN TRUE;
+END;
+$$;
++-----------------------------------------------+
+| status                                        |
+|-----------------------------------------------|
+| Function UPDATE_QA_PAIR successfully created. |
++-----------------------------------------------+
+CREATE OR REPLACE PROCEDURE delete_qa_pair(qa_id NUMBER)
+RETURNS BOOLEAN
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    DELETE FROM daily_qa_pairs
+    WHERE id = :qa_id;
+    RETURN TRUE;
+END;
+$$;
++-----------------------------------------------+
+| status                                        |
+|-----------------------------------------------|
+| Function DELETE_QA_PAIR successfully created. |
++-----------------------------------------------+
+CREATE OR REPLACE FUNCTION search_qa_pairs(keyword TEXT)
+RETURNS TABLE (
+    id NUMBER,
+    question TEXT,
+    answer TEXT,
+    created_at TIMESTAMP_NTZ,
+    updated_at TIMESTAMP_NTZ
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT id, question, answer, created_at, updated_at
+FROM daily_qa_pairs
+WHERE 
+    LOWER(question) LIKE ''%'' || LOWER(keyword) || ''%'' OR
+    LOWER(answer) LIKE ''%'' || LOWER(keyword) || ''%''
+ORDER BY created_at DESC';
++------------------------------------------------+
+| status                                         |
+|------------------------------------------------|
+| Function SEARCH_QA_PAIRS successfully created. |
++------------------------------------------------+
+CREATE OR REPLACE FUNCTION get_qa_pairs_by_date_range(
+    start_date TIMESTAMP_NTZ,
+    end_date TIMESTAMP_NTZ
+)
+RETURNS TABLE (
+    id NUMBER,
+    question TEXT,
+    answer TEXT,
+    created_at TIMESTAMP_NTZ,
+    updated_at TIMESTAMP_NTZ
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT id, question, answer, created_at, updated_at
+FROM daily_qa_pairs
+WHERE created_at BETWEEN start_date AND end_date
+ORDER BY created_at DESC';
++-----------------------------------------------------------+
+| status                                                    |
+|-----------------------------------------------------------|
+| Function GET_QA_PAIRS_BY_DATE_RANGE successfully created. |
++-----------------------------------------------------------+
+CREATE OR REPLACE FUNCTION get_recent_qa_pairs(limit_count NUMBER)
+RETURNS TABLE (
+    id NUMBER,
+    question TEXT,
+    answer TEXT,
+    created_at TIMESTAMP_NTZ,
+    updated_at TIMESTAMP_NTZ
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT id, question, answer, created_at, updated_at
+FROM (
+    SELECT id, question, answer, created_at, updated_at,
+           ROW_NUMBER() OVER (ORDER BY created_at DESC) as rn
+    FROM daily_qa_pairs
+)
+WHERE rn <= limit_count';
++----------------------------------------------------+
+| status                                             |
+|----------------------------------------------------|
+| Function GET_RECENT_QA_PAIRS successfully created. |
++----------------------------------------------------+
+CREATE OR REPLACE FUNCTION get_qa_pairs_count()
+RETURNS NUMBER
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT COUNT(*) FROM daily_qa_pairs';
++---------------------------------------------------+
+| status                                            |
+|---------------------------------------------------|
+| Function GET_QA_PAIRS_COUNT successfully created. |
++---------------------------------------------------+
+CREATE OR REPLACE FUNCTION get_qa_pairs_stats()
+RETURNS TABLE (
+    total_pairs NUMBER,
+    oldest_pair_date TIMESTAMP_NTZ,
+    newest_pair_date TIMESTAMP_NTZ,
+    average_answer_length NUMBER
+)
+LANGUAGE SQL
+RETURNS NULL ON NULL INPUT
+AS
+'SELECT 
+    COUNT(*) as total_pairs,
+    MIN(created_at) as oldest_pair_date,
+    MAX(created_at) as newest_pair_date,
+    AVG(LENGTH(answer)) as average_answer_length
+FROM daily_qa_pairs';
++---------------------------------------------------+
+| status                                            |
+|---------------------------------------------------|
+| Function GET_QA_PAIRS_STATS successfully created. |
++---------------------------------------------------+
+\checkmark Creating functions and procedures completed successfully
+
+==== Executing Creating batch insert procedure ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+CREATE OR REPLACE PROCEDURE batch_insert_qa_pairs_proc(json_data VARIANT)
+RETURNS ARRAY
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('snowflake-snowpark-python')
+HANDLER = 'run'
+AS
+$$
+def run(session, json_data):
+    inserted_ids = []
+    
+    # json_data is already a list of dictionaries
+    for item in json_data:
+        question = item.get('QUESTION') or item.get('question')
+        answer = item.get('ANSWER') or item.get('answer')
+        if not question or not answer:
+            continue
+            
+        # Call add_qa_pair using parameterized query
+        result = session.sql("CALL add_qa_pair(?, ?)", ).collect()
+        inserted_id = result[0][0]
+        inserted_ids.append(inserted_id)
+    
+    return inserted_ids
+$$;
++-----------------------------------------------------------+
+| status                                                    |
+|-----------------------------------------------------------|
+| Function BATCH_INSERT_QA_PAIRS_PROC successfully created. |
++-----------------------------------------------------------+
+\checkmark Creating batch insert procedure completed successfully
+
+==== Step 2: Inserting Sample Data ====
+
+
+==== Executing Inserting sample data ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+INSERT INTO daily_qa_pairs (id, question, answer) VALUES 
+(daily_qa_pairs_seq.NEXTVAL, 'What is Snowflake?', 
+ 'Snowflake is a cloud-native data platform that offers data warehouse, data lake, data engineering, and data sharing capabilities.'),
+(daily_qa_pairs_seq.NEXTVAL, 'How does Snowflake handle data storage?', 
+ 'Snowflake uses a unique architecture that separates storage and compute, allowing for independent scaling and cost optimization.'),
+(daily_qa_pairs_seq.NEXTVAL, 'What are Snowflake warehouses?', 
+ 'Snowflake warehouses are compute resources that process queries and DML operations. They can be started, stopped, and scaled independently.'),
+(daily_qa_pairs_seq.NEXTVAL, 'What is data sharing in Snowflake?', 
+ 'Snowflake enables secure data sharing between accounts without copying or transferring data, using a unique approach called Secure Data Sharing.'),
+(daily_qa_pairs_seq.NEXTVAL, 'How does Snowflake handle data security?', 
+ 'Snowflake provides comprehensive security features including encryption at rest and in transit, role-based access control, and network security policies.');
++-------------------------+
+| number of rows inserted |
+|-------------------------|
+| 5                       |
++-------------------------+
+SELECT 'Sample data inserted successfully' as status;
++-----------------------------------+
+| STATUS                            |
+|-----------------------------------|
+| Sample data inserted successfully |
++-----------------------------------+
+\checkmark Inserting sample data completed successfully
+
+==== Step 3: Demonstrating Batch Insert ====
+
+
+==== Executing Demonstrating batch insert functionality ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+DROP PROCEDURE IF EXISTS add_qa_pair(TEXT, TEXT);
++-----------------------------------+
+| status                            |
+|-----------------------------------|
+| ADD_QA_PAIR successfully dropped. |
++-----------------------------------+
+DROP PROCEDURE IF EXISTS batch_insert_qa_pairs_sp(VARIANT);
++------------------------------------------------+
+| status                                         |
+|------------------------------------------------|
+| BATCH_INSERT_QA_PAIRS_SP successfully dropped. |
++------------------------------------------------+
+DROP FUNCTION IF EXISTS batch_insert_qa_pairs_udf(VARIANT);
++-------------------------------------------------------------------+
+| status                                                            |
+|-------------------------------------------------------------------|
+| Drop statement executed successfully (BATCH_INSERT_QA_PAIRS_UDF   |
+| already dropped).                                                 |
++-------------------------------------------------------------------+
+DROP SEQUENCE IF EXISTS daily_qa_pairs_seq;
++------------------------------------------+
+| status                                   |
+|------------------------------------------|
+| DAILY_QA_PAIRS_SEQ successfully dropped. |
++------------------------------------------+
+DROP TABLE IF EXISTS daily_qa_pairs;
++--------------------------------------+
+| status                               |
+|--------------------------------------|
+| DAILY_QA_PAIRS successfully dropped. |
++--------------------------------------+
+CREATE OR REPLACE SEQUENCE daily_qa_pairs_seq START = 1 INCREMENT = 1;
++---------------------------------------------------+
+| status                                            |
+|---------------------------------------------------|
+| Sequence DAILY_QA_PAIRS_SEQ successfully created. |
++---------------------------------------------------+
+CREATE OR REPLACE TABLE daily_qa_pairs (
+    id NUMBER PRIMARY KEY,                    
+    question TEXT,               
+    answer TEXT,                 
+    created_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),  
+    updated_at TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()   
+);
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Table DAILY_QA_PAIRS successfully created. |
++--------------------------------------------+
+CREATE OR REPLACE PROCEDURE add_qa_pair(question TEXT, answer TEXT)
+RETURNS NUMBER
+LANGUAGE SQL
+AS
+$$
+DECLARE
+    new_id NUMBER;
+BEGIN
+    SELECT daily_qa_pairs_seq.NEXTVAL INTO :new_id;
+    
+    INSERT INTO daily_qa_pairs (id, question, answer)
+    VALUES (:new_id, :question, :answer);
+    
+    RETURN :new_id;
+END;
+$$;
++--------------------------------------------+
+| status                                     |
+|--------------------------------------------|
+| Function ADD_QA_PAIR successfully created. |
++--------------------------------------------+
+CREATE OR REPLACE PROCEDURE batch_insert_qa_pairs_sp(json_data VARIANT)
+RETURNS ARRAY
+LANGUAGE PYTHON
+RUNTIME_VERSION = '3.8'
+PACKAGES = ('snowflake-snowpark-python')
+HANDLER = 'run'
+AS
+$$
+def run(session, json_data):
+    inserted_ids = []
+    
+    # json_data is already a list of dictionaries
+    for item in json_data:
+        question = item.get('QUESTION') or item.get('question')
+        answer = item.get('ANSWER') or item.get('answer')
+        if not question or not answer:
+            continue
+            
+        # Call add_qa_pair using parameterized query
+        result = session.sql("CALL add_qa_pair(?, ?)", ).collect()
+        inserted_id = result[0][0]
+        inserted_ids.append(inserted_id)
+    
+    return inserted_ids
+$$;
++---------------------------------------------------------+
+| status                                                  |
+|---------------------------------------------------------|
+| Function BATCH_INSERT_QA_PAIRS_SP successfully created. |
++---------------------------------------------------------+
+CALL batch_insert_qa_pairs_sp(PARSE_JSON('[
+    {
+        "question": "What is Snowflake Time Travel?",
+        "answer": "Time Travel is a feature that allows you to access historical data at any point within a defined period."
+    },
+    {
+        "question": "How does Snowflake handle data loading?",
+        "answer": "Snowflake supports multiple data loading methods including bulk loading, continuous loading, and Snowpipe."
+    }
+]'));
++--------------------------+
+| BATCH_INSERT_QA_PAIRS_SP |
+|--------------------------|
+| [                        |
+|   1,                     |
+|   2                      |
+| ]                        |
++--------------------------+
+SELECT * FROM daily_qa_pairs ORDER BY id;
++-------------------------------------------------------------------+
+| ID | QUESTION      | ANSWER        | CREATED_AT   | UPDATED_AT    |
+|----+---------------+---------------+--------------+---------------|
+| 1  | What is       | Time Travel   | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | is a feature  | 21:57:20.819 | 21:57:20.8190 |
+|    | Time Travel?  | that allows   | 000          | 00            |
+|    |               | you to access |              |               |
+|    |               | historical    |              |               |
+|    |               | data at any   |              |               |
+|    |               | point within  |              |               |
+|    |               | a defined     |              |               |
+|    |               | period.       |              |               |
+| 2  | How does      | Snowflake     | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | supports      | 21:57:21.303 | 21:57:21.3030 |
+|    | handle data   | multiple data | 000          | 00            |
+|    | loading?      | loading       |              |               |
+|    |               | methods       |              |               |
+|    |               | including     |              |               |
+|    |               | bulk loading, |              |               |
+|    |               | continuous    |              |               |
+|    |               | loading, and  |              |               |
+|    |               | Snowpipe.     |              |               |
++-------------------------------------------------------------------+
+\checkmark Demonstrating batch insert functionality completed successfully
+
+==== Step 4: Demonstrating Functionality ====
+
+
+==== Executing Getting all QA pairs ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'All QA Pairs:' as message;
++---------------+
+| MESSAGE       |
+|---------------|
+| All QA Pairs: |
++---------------+
+SELECT * FROM TABLE(get_all_qa_pairs());
++-------------------------------------------------------------------+
+| ID | QUESTION      | ANSWER        | CREATED_AT   | UPDATED_AT    |
+|----+---------------+---------------+--------------+---------------|
+| 2  | How does      | Snowflake     | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | supports      | 21:57:21.303 | 21:57:21.3030 |
+|    | handle data   | multiple data | 000          | 00            |
+|    | loading?      | loading       |              |               |
+|    |               | methods       |              |               |
+|    |               | including     |              |               |
+|    |               | bulk loading, |              |               |
+|    |               | continuous    |              |               |
+|    |               | loading, and  |              |               |
+|    |               | Snowpipe.     |              |               |
+| 1  | What is       | Time Travel   | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | is a feature  | 21:57:20.819 | 21:57:20.8190 |
+|    | Time Travel?  | that allows   | 000          | 00            |
+|    |               | you to access |              |               |
+|    |               | historical    |              |               |
+|    |               | data at any   |              |               |
+|    |               | point within  |              |               |
+|    |               | a defined     |              |               |
+|    |               | period.       |              |               |
++-------------------------------------------------------------------+
+\checkmark Getting all QA pairs completed successfully
+
+==== Executing Searching for QA pairs containing 'security' ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'QA Pairs containing "security":' as message;
++---------------------------------+
+| MESSAGE                         |
+|---------------------------------|
+| QA Pairs containing "security": |
++---------------------------------+
+SELECT * FROM TABLE(search_qa_pairs('security'));
+No data
+
+\checkmark Searching for QA pairs containing 'security' completed successfully
+
+==== Executing Getting 3 most recent QA pairs ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT '3 Most Recent QA Pairs:' as message;
++-------------------------+
+| MESSAGE                 |
+|-------------------------|
+| 3 Most Recent QA Pairs: |
++-------------------------+
+SELECT * FROM TABLE(get_recent_qa_pairs(3));
++-------------------------------------------------------------------+
+| ID | QUESTION      | ANSWER        | CREATED_AT   | UPDATED_AT    |
+|----+---------------+---------------+--------------+---------------|
+| 2  | How does      | Snowflake     | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | supports      | 21:57:21.303 | 21:57:21.3030 |
+|    | handle data   | multiple data | 000          | 00            |
+|    | loading?      | loading       |              |               |
+|    |               | methods       |              |               |
+|    |               | including     |              |               |
+|    |               | bulk loading, |              |               |
+|    |               | continuous    |              |               |
+|    |               | loading, and  |              |               |
+|    |               | Snowpipe.     |              |               |
+| 1  | What is       | Time Travel   | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | is a feature  | 21:57:20.819 | 21:57:20.8190 |
+|    | Time Travel?  | that allows   | 000          | 00            |
+|    |               | you to access |              |               |
+|    |               | historical    |              |               |
+|    |               | data at any   |              |               |
+|    |               | point within  |              |               |
+|    |               | a defined     |              |               |
+|    |               | period.       |              |               |
++-------------------------------------------------------------------+
+\checkmark Getting 3 most recent QA pairs completed successfully
+
+==== Executing Getting QA pairs statistics ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'QA Pairs Statistics:' as message;
++----------------------+
+| MESSAGE              |
+|----------------------|
+| QA Pairs Statistics: |
++----------------------+
+SELECT * FROM TABLE(get_qa_pairs_stats());
++-------------------------------------------------------------------+
+|             | OLDEST_PAIR_DAT | NEWEST_PAIR_DAT | AVERAGE_ANSWER_ |
+| TOTAL_PAIRS | E               | E               | LENGTH          |
+|-------------+-----------------+-----------------+-----------------|
+| 2           | 2025-04-07      | 2025-04-07      | 105             |
+|             | 21:57:20.819000 | 21:57:21.303000 |                 |
++-------------------------------------------------------------------+
+\checkmark Getting QA pairs statistics completed successfully
+
+==== Executing Updating a QA pair ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'Updating QA pair with ID 1:' as message;
++-----------------------------+
+| MESSAGE                     |
+|-----------------------------|
+| Updating QA pair with ID 1: |
++-----------------------------+
+CALL update_qa_pair(1, 'What is Snowflake?', 
+  'Snowflake is a cloud-native data platform that offers data warehouse, data lake, data engineering, data sharing, and application development capabilities through Snowpark.');
++----------------+
+| UPDATE_QA_PAIR |
+|----------------|
+| True           |
++----------------+
+SELECT 'Updated QA pair:' as message;
++------------------+
+| MESSAGE          |
+|------------------|
+| Updated QA pair: |
++------------------+
+SELECT * FROM TABLE(get_qa_pair_by_id(1));
++-------------------------------------------------------------------+
+| ID | QUESTION      | ANSWER        | CREATED_AT   | UPDATED_AT    |
+|----+---------------+---------------+--------------+---------------|
+| 1  | What is       | Snowflake is  | 2025-04-07   | 2025-04-07    |
+|    | Snowflake?    | a             | 21:57:20.819 | 21:57:30.2590 |
+|    |               | cloud-native  | 000          | 00            |
+|    |               | data platform |              |               |
+|    |               | that offers   |              |               |
+|    |               | data          |              |               |
+|    |               | warehouse,    |              |               |
+|    |               | data lake,    |              |               |
+|    |               | data          |              |               |
+|    |               | engineering,  |              |               |
+|    |               | data sharing, |              |               |
+|    |               | and           |              |               |
+|    |               | application   |              |               |
+|    |               | development   |              |               |
+|    |               | capabilities  |              |               |
+|    |               | through       |              |               |
+|    |               | Snowpark.     |              |               |
++-------------------------------------------------------------------+
+\checkmark Updating a QA pair completed successfully
+
+==== Executing Getting QA pairs by date range ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'QA Pairs created in the last hour:' as message;
++------------------------------------+
+| MESSAGE                            |
+|------------------------------------|
+| QA Pairs created in the last hour: |
++------------------------------------+
+SELECT * FROM TABLE(get_qa_pairs_by_date_range(
+  CONVERT_TIMEZONE('UTC', DATEADD(hours, -1, CURRENT_TIMESTAMP()))::TIMESTAMP_NTZ,
+  CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::TIMESTAMP_NTZ
+));
+No data
+
+\checkmark Getting QA pairs by date range completed successfully
+
+==== Executing Deleting a QA pair ====
+
+USE DATABASE KV_STORE;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+USE SCHEMA PUBLIC;
++----------------------------------+
+| status                           |
+|----------------------------------|
+| Statement executed successfully. |
++----------------------------------+
+SELECT 'Deleting QA pair with ID 5:' as message;
++-----------------------------+
+| MESSAGE                     |
+|-----------------------------|
+| Deleting QA pair with ID 5: |
++-----------------------------+
+CALL delete_qa_pair(5);
++----------------+
+| DELETE_QA_PAIR |
+|----------------|
+| True           |
++----------------+
+SELECT 'Remaining QA pairs:' as message;
++---------------------+
+| MESSAGE             |
+|---------------------|
+| Remaining QA pairs: |
++---------------------+
+SELECT * FROM TABLE(get_all_qa_pairs());
++-------------------------------------------------------------------+
+| ID | QUESTION      | ANSWER        | CREATED_AT   | UPDATED_AT    |
+|----+---------------+---------------+--------------+---------------|
+| 2  | How does      | Snowflake     | 2025-04-07   | 2025-04-07    |
+|    | Snowflake     | supports      | 21:57:21.303 | 21:57:21.3030 |
+|    | handle data   | multiple data | 000          | 00            |
+|    | loading?      | loading       |              |               |
+|    |               | methods       |              |               |
+|    |               | including     |              |               |
+|    |               | bulk loading, |              |               |
+|    |               | continuous    |              |               |
+|    |               | loading, and  |              |               |
+|    |               | Snowpipe.     |              |               |
+| 1  | What is       | Snowflake is  | 2025-04-07   | 2025-04-07    |
+|    | Snowflake?    | a             | 21:57:20.819 | 21:57:30.2590 |
+|    |               | cloud-native  | 000          | 00            |
+|    |               | data platform |              |               |
+|    |               | that offers   |              |               |
+|    |               | data          |              |               |
+|    |               | warehouse,    |              |               |
+|    |               | data lake,    |              |               |
+|    |               | data          |              |               |
+|    |               | engineering,  |              |               |
+|    |               | data sharing, |              |               |
+|    |               | and           |              |               |
+|    |               | application   |              |               |
+|    |               | development   |              |               |
+|    |               | capabilities  |              |               |
+|    |               | through       |              |               |
+|    |               | Snowpark.     |              |               |
++-------------------------------------------------------------------+
+\checkmark Deleting a QA pair completed successfully
+
+==== Demo Completed Successfully ====
+
+All steps completed successfully!
